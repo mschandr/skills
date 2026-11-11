@@ -26,7 +26,7 @@ Start a new Claude Code session afterwards.
 |---|---|---|
 | `CLAUDE.md` | Global rules | How to work in any repo: explore, plan, test first, verify, boundaries, reporting |
 | `shared/danger-levels.md` | Shared reference | None / Trivial / Low / Medium / High / Critical scale for changes, with escalation rules |
-| `skills/analyze-codebase/` | Skill | Onboard onto a repo: version check, map, flow, conventions, test baseline, draft CLAUDE.md; `--deep` adds a size-budgeted codebase map. Profiles: node, python, php, go |
+| `skills/analyze-codebase/` | Skill | Onboard onto a repo in three modes: `--quick` (read-only reconnaissance in chat, about two minutes), standard (adds test baseline, metrics and a drafted CLAUDE.md) and `--deep` (adds a size-budgeted codebase map). Profiles: node, python, php, go |
 | `skills/red-team/` | Skill | Attack a codebase, path or diff; every finding proven by a failing test |
 | `agents/red-team.md` | Subagent | The fresh-context attacker used by /red-team (adds tests only) |
 | `skills/architecture-review/` | Skill | Evidence-based review: dependency graph, complexity, git hotspots, change coupling, coverage, layered guidelines |
@@ -38,7 +38,7 @@ Start a new Claude Code session afterwards.
 ## Usage
 
 ```
-/analyze-codebase [ecosystem|framework] [version] [--deep] [--update] [--map-only]
+/analyze-codebase [ecosystem|framework] [version] [--quick | --deep] [--update] [--map-only]
                   [--scope <dir>] [--skip-tests] [--skip-coverage]
                   [--output-file-path <path>] [--trust]
 /red-team [path | --diff]

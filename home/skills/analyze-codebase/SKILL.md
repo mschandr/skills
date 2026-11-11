@@ -1,7 +1,7 @@
 ---
 name: analyze-codebase
-description: Map an unfamiliar repository and draft a project CLAUDE.md; with --deep, also write CODEBASE.md, a per-file map of the source. Use when starting work in a new or unfamiliar repo, or when asked to understand, map, document or onboard onto a codebase. Optional arguments - ecosystem or framework and version (e.g. "node 26", "laravel 11"), and flags --deep, --update, --map-only, --scope <dir>, --skip-tests, --skip-coverage, --output-file-path <path>, --trust.
-argument-hint: "[ecosystem|framework] [version] [--deep] [--update] [--map-only] [--scope <dir>] [--skip-tests] [--skip-coverage] [--output-file-path <path>] [--trust]"
+description: Map an unfamiliar repository. Three modes - --quick (read-only reconnaissance in chat, about two minutes), standard (default; adds test baseline, metrics and a drafted project CLAUDE.md) and --deep (also writes CODEBASE.md, a per-file map of the source). Use when starting work in a new or unfamiliar repo, or when asked to understand, map, document or onboard onto a codebase. Optional arguments - ecosystem or framework and version (e.g. "node 26", "laravel 11"), and flags --quick, --deep, --update, --map-only, --scope <dir>, --skip-tests, --skip-coverage, --output-file-path <path>, --trust.
+argument-hint: "[ecosystem|framework] [version] [--quick | --deep] [--update] [--map-only] [--scope <dir>] [--skip-tests] [--skip-coverage] [--output-file-path <path>] [--trust]"
 ---
 
 # Analyze codebase
@@ -13,6 +13,11 @@ Positional (both optional):
 - First: an ecosystem (node, python, php, go) or a framework (next, react, laravel, django, fastapi, ...).
   A framework implies its language: load the language profile, and note the framework for its gotchas.
 - Second: the expected version of that ecosystem or framework.
+Modes (pick one; standard is the default):
+- `--quick`: read-only reconnaissance, reported in chat only (section Q). Writes nothing.
+- standard (no mode flag): sections 1 to 7: profile, runtime check, map, flow, conventions, test baseline,
+  metrics, drafted CLAUDE.md.
+- `--deep`: standard plus the codebase map (section 8).
 Flags:
 - `--deep`: also build the codebase map (section 8).
 - `--update`: refresh, don't start over. Read the commit hash recorded in the existing map (or CLAUDE.md
@@ -26,6 +31,45 @@ Flags:
 - `--trust`: write outputs without stopping for approval. Still show what was written. If a file
   already existed, report a short diff of what changed. Never use --trust behaviour unless the flag is given.
 Unknown flags: say so and ignore them; don't guess what they meant.
+Conflicts: `--quick` implies --skip-tests and --skip-coverage, and cannot be combined with --deep, --update,
+--map-only, --trust or --output-file-path. If it is, say which flags conflict and stop without doing anything.
+Before starting, print the effective mode and flags in one line, e.g. `mode=quick ecosystem=node (detected) tests=skipped`.
+
+## Q. Quick mode (only with --quick)
+Goal: useful first understanding in about two minutes. Enforce it with limits, not a clock.
+
+Limits:
+- Read: the manifest and lockfile header for the ecosystem (from the profile), runtime pins, the main config
+  files, and at most about six source files: entry points, one route or endpoint, one state or store module,
+  and one representative component or handler.
+- Use `git ls-files` once for the tree; don't recurse through large directories file by file.
+- No test runs, no coverage, no installs, no builds, no network lookups.
+- Write nothing: no CLAUDE.md, no codebase map, no other files.
+
+Steps:
+1. Profile and runtime check as in sections 1 and 2 (report mismatches; change nothing).
+2. Stack and versions from the manifest; package manager from the lockfile; available scripts or commands.
+3. Framework entry points (e.g. Next `app/` layout and pages, `main.go`, Laravel `routes/` and
+   `bootstrap/app.php`, Django `urls.py`).
+4. API structure: list routes or endpoints with method and path where cheap to find; otherwise the folder
+   that holds them.
+5. State management and data flow: where data comes from, where state lives (hooks, store, context,
+   server state, database), and the one-line chain from source to UI or response.
+6. Conventions: two or three patterns visible in the files read.
+
+Output (chat only, about 15 lines):
+- Purpose: one or two sentences.
+- Stack: languages, frameworks and versions; package manager; pin mismatches.
+- Commands: dev, test, build, lint, as found.
+- Size: source lines, only if `scc` or `tokei` is installed (seconds); otherwise omit.
+- Entry points.
+- API surface.
+- State and data flow: the chain.
+- Conventions: 2 or 3.
+- Gotchas spotted.
+- Next step: usually "run standard mode (e.g. with --skip-coverage) to take a test baseline and draft
+  CLAUDE.md". Mention that other agent sessions and worktrees only get this context once CLAUDE.md exists.
+
 
 Goal: in a few minutes, understand this repo well enough to work in it safely, and leave behind a short,
 true project CLAUDE.md. Sample representative files; don't read everything.
