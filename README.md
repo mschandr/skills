@@ -28,7 +28,7 @@ Start a new Claude Code session afterwards.
 | `shared/danger-levels.md` | Shared reference | None / Trivial / Low / Medium / High / Critical scale for changes, with escalation rules |
 | `skills/analyze-codebase/` | Skill | Onboard onto a repo in three modes: `--quick` (read-only reconnaissance in chat, about two minutes), standard (adds test baseline, metrics and a drafted CLAUDE.md) and `--deep` (adds a size-budgeted codebase map). Profiles: node, python, php, go |
 | `skills/red-team/` | Skill | Attack a codebase, path or diff; every finding proven by a failing test |
-| `agents/red-team.md` | Subagent | The fresh-context attacker used by /red-team (adds tests only) |
+| `skills/red-team/` | Skill | Attack code in three modes: `--quick` (default; last 10 commits plus uncommitted work), `--diff` (pre-commit) and `--deep` (whole codebase, parallel attackers by area). Every finding proven by a failing test |
 | `skills/architecture-review/` | Skill | Evidence-based review: dependency graph, complexity, git hotspots, change coupling, coverage, layered guidelines |
 | `skills/blast-radius/` | Skill | Impact map for a change: dependents, dynamic links, history coupling, surfaces, contracts, tests, danger rating |
 | `skills/commit/` | Skill | Commit with a danger rating, level-based gates and `Danger:` trailers; never pushes |
@@ -41,7 +41,7 @@ Start a new Claude Code session afterwards.
 /analyze-codebase [ecosystem|framework] [version] [--quick | --deep] [--update] [--map-only]
                   [--scope <dir>] [--skip-tests] [--skip-coverage]
                   [--output-file-path <path>] [--trust]
-/red-team [path | --diff]
+/red-team [--quick | --diff | --deep] [--commits <n>] [path]
 /architecture-review [path]
 /blast-radius <file | file:line | file:symbol | --diff> [intended change]
 /commit [message hint]

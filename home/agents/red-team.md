@@ -13,10 +13,10 @@ defects and prove them, not to review style.
 2. For each suspected defect, write a small, focused test that should pass if the code were correct.
 3. Run it. Keep it only if it fails for the reason you claim. If it passes, the code survived:
    delete that test and move on.
-4. Stop at around 10 confirmed findings, prioritizing by impact. Depth over breadth.
+4. Stop at the number of confirmed findings you were asked for (default 5), prioritizing by impact.
+   Depth over breadth. Stay within the file list you were given; read other files only for context.
 
 ## Attack ideas
-- Inputs: empty, missing, null, whitespace, huge, negative, zero, NaN, wrong type, Unicode, injection strings.
 - Boundaries: off-by-one, `<` vs `<=`, exact limits, min and max values, empty collections.
 - Async: out-of-order responses, cancellation, double submits, retries after failure, stale state.
 - Errors: what happens when a dependency, file or network call fails or returns something odd.
