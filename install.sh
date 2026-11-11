@@ -1,21 +1,34 @@
 #!/usr/bin/env bash
-# Install the user-level Claude Code harness into ~/.claude (macOS and Linux).
+# Install the Claude Code skills harness.
 #
-#   ./install.sh          copy files
-#   ./install.sh --link   symlink files, so `git pull` in this repo updates every machine
+#   ./install.sh                     copy into ~/.claude (all your projects on this machine)
+#   ./install.sh --link              symlink into ~/.claude, so `git pull` here updates it everywhere
+#   ./install.sh --target <project>  copy into <project>/.claude, to commit with that project
 #
-# Every existing file is compared by SHA-256 checksum, never assumed identical:
-#   identical      -> nothing to back up (copy mode skips it; link mode swaps it for a link)
-#   different      -> the existing file is backed up to ~/.claude/backup-<timestamp>/, then replaced
-#   broken symlink -> the dangling link is recorded in the backup, then replaced
+# Existing files are compared by SHA-256. Identical files are left alone. Changed files are
+# backed up to <dest>/backup-<timestamp>/ before being replaced. Only changes are printed.
+# Project installs are copy-only and never include the global CLAUDE.md.
 set -euo pipefail
 
+usage() { echo "usage: $0 [--link | --target <project-dir>]" >&2; exit 2; }
+
 mode=copy
-case "${1:-}" in
-  "") ;;
-  --link) mode=link ;;
-  *) echo "usage: $0 [--link]" >&2; exit 2 ;;
-esac
+dest="$HOME/.claude"
+scope=user
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --link) mode=link; shift ;;
+    --target)
+      [ $# -ge 2 ] || usage
+      [ -d "$2" ] || { echo "not a directory: $2" >&2; exit 2; }
+      dest="$(cd "$2" && pwd)/.claude"; scope=project; shift 2 ;;
+    *) usage ;;
+  esac
+done
+if [ "$scope" = project ] && [ "$mode" = link ]; then
+  echo "--link and --target can't be combined: project installs are copies, so they can be committed." >&2
+  exit 2
+fi
 
 if command -v sha256sum >/dev/null 2>&1; then
   sum() { sha256sum "$1" | cut -d' ' -f1; }
@@ -26,48 +39,62 @@ else
 fi
 
 src="$(cd "$(dirname "$0")/home" && pwd)"
-dest="$HOME/.claude"
 backup="$dest/backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$dest"
 cd "$src"
 
-backed_up="$(mktemp)"
-trap 'rm -f "$backed_up"' EXIT
+log="$(mktemp)"
+trap 'rm -f "$log"' EXIT
+note() { echo "$1" >> "$log"; }   # one word per file: new, updated, converted, unchanged, skipped
 
-backup_target() {   # $1 = relative path
-  echo "$1" >> "$backed_up"
+backup_target() {
   mkdir -p "$backup/$(dirname "$1")"
   cp -P "$dest/$1" "$backup/$1"
 }
 
-find . -type f | sort | while read -r f; do
+install_file() {
+  if [ "$mode" = link ]; then ln -s "$src/$1" "$dest/$1"; else cp "$1" "$dest/$1"; fi
+}
+
+find . -type f | sort | while IFS= read -r f; do
   f="${f#./}"
   target="$dest/$f"
-  want="$(sum "$f")"
+
+  if [ "$scope" = project ] && [ "$f" = CLAUDE.md ]; then
+    note skipped; echo "skipped    CLAUDE.md (global rules are not installed into projects)"; continue
+  fi
   mkdir -p "$(dirname "$target")"
 
-  if [ -L "$target" ] && [ ! -e "$target" ]; then
-    backup_target "$f"; rm -f "$target"; state="broken link replaced"
-  elif [ -e "$target" ]; then
-    have="$(sum "$target")"   # follows symlinks, so a link is judged by its content
-    if [ "$have" = "$want" ]; then
-      if [ "$mode" = link ] && [ -L "$target" ] && [ "$(readlink "$target")" = "$src/$f" ]; then
-        echo "ok         $f (linked, checksum verified)"; continue
-      fi
-      if [ "$mode" = copy ] && [ ! -L "$target" ]; then
-        echo "ok         $f (identical, checksum verified)"; continue
-      fi
-      rm -f "$target"; state="identical, replaced"
-    else
-      backup_target "$f"; rm -f "$target"; state="changed, backed up"
-    fi
-  else
-    state="new"
+  # Nothing there yet.
+  if [ ! -e "$target" ] && [ ! -L "$target" ]; then
+    install_file "$f"; note new; echo "new        $f"; continue
   fi
 
-  if [ "$mode" = link ]; then ln -s "$src/$f" "$target"; else cp "$f" "$target"; fi
-  printf '%-10s %s (%s)\n' "$mode" "$f" "$state"
+  # Dangling symlink (e.g. the repo moved): keep a record of it, then replace.
+  if [ -L "$target" ] && [ ! -e "$target" ]; then
+    backup_target "$f"; rm -f "$target"; install_file "$f"
+    note updated; echo "fixed      $f (broken link replaced, old link backed up)"; continue
+  fi
+
+  if [ "$(sum "$target")" = "$(sum "$f")" ]; then
+    # Same content. Only the form may need changing: a copy where a link is wanted, or vice versa.
+    if [ "$mode" = link ] && [ ! -L "$target" ]; then
+      rm -f "$target"; install_file "$f"; note converted; echo "converted  $f (copy -> link)"
+    elif [ "$mode" = copy ] && [ -L "$target" ]; then
+      rm -f "$target"; install_file "$f"; note converted; echo "converted  $f (link -> copy)"
+    else
+      note unchanged
+    fi
+    continue
+  fi
+
+  # Different content: back up what's there, then replace it.
+  backup_target "$f"; rm -f "$target"; install_file "$f"
+  note updated; echo "updated    $f (previous version backed up)"
 done
 
-[ -s "$backed_up" ] && echo "Backed up $(wc -l < "$backed_up" | tr -d ' ') file(s) to $backup"
-echo "Done ($mode). Start a new Claude Code session to pick up the changes."
+count() { grep -cx "$1" "$log" || true; }
+echo
+echo "Installed to $dest ($mode): $(count new) new, $(count updated) updated, $(count converted) converted, $(count unchanged) unchanged, $(count skipped) skipped."
+[ -d "$backup" ] && [ "$(count updated)" -gt 0 ] && echo "Backups: $backup"
+echo "Start a new Claude Code session to pick up the changes."

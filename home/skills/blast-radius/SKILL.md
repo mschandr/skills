@@ -46,7 +46,8 @@ Read-only.
 - Dependents with no test coverage: list them as the blind spots.
 
 ## 5. Danger rating (always for --diff; for other targets, rate the intended change)
-Read `~/.claude/shared/danger-levels.md` and apply it: classify every hunk, then rate the whole change
+Read the danger scale: `.claude/shared/danger-levels.md` in the project if it exists, otherwise
+`~/.claude/shared/danger-levels.md` and apply it: classify every hunk, then rate the whole change
 as its most dangerous part, applying the escalation rules and the Critical safeguards.
 
 ## 6. Report

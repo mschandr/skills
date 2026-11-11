@@ -12,12 +12,14 @@ Everything installs into `~/.claude/`, so it applies in every repository on the 
 ```bash
 git clone <this repo> ~/workspace/skills
 cd ~/workspace/skills
-./install.sh --link     # symlinks: `git pull` keeps every machine in sync
-# or
-./install.sh            # plain copies
+./install.sh --link                  # symlink into ~/.claude: `git pull` keeps every machine in sync
+./install.sh                         # or plain copies into ~/.claude
+./install.sh --target ~/code/myapp   # or copy into one project's .claude/, to commit with it
 ```
 
-Existing files in `~/.claude` are backed up to `~/.claude/backup-<timestamp>/` before anything is replaced.
+Existing files are compared by SHA-256: identical ones are left alone, changed ones are backed up to
+`<dest>/backup-<timestamp>/` before being replaced. Only changes are printed, followed by a summary.
+Project installs are copy-only (so teammates get real files) and never include the global `CLAUDE.md`.
 Start a new Claude Code session afterwards.
 
 ## What's in it

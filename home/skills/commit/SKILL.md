@@ -18,7 +18,8 @@ Invoking this skill is my explicit request to commit. Never push.
   files gitignored or generated. Flag them instead.
 
 ## 2. Rate the danger
-- Read `~/.claude/shared/danger-levels.md`. Classify each hunk, apply the escalation rules,
+- Read the danger scale: `.claude/shared/danger-levels.md` in the project if it exists, otherwise
+`~/.claude/shared/danger-levels.md`. Classify each hunk, apply the escalation rules,
   and take the highest level as the commit's rating.
 - This is a quick classification, not a full /blast-radius map. If the rating is High or Critical,
   or you're unsure between two levels, say so and offer to run /blast-radius --diff first.
